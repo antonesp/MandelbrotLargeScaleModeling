@@ -35,9 +35,9 @@ rank = comm.Get_rank()
 # Get total number of MPI ranks in the `comm` communicator.
 cores = comm.Get_size()
 
-
-chunk_size = 10
-size = 1000, 1000
+save = 0
+chunk_size = 1
+size = 2000, 2000
 xlim = -2.2, 0.75
 ylim = -1.3, 1.3
 
@@ -52,15 +52,15 @@ if argv:
 if argv:
     ylim = tuple(map(float, argv.pop(0).split(":")))
 
-if rank == 0:
-    print(f"""\
-    Calculating the Mandelbrot set with these arguments:
+# if rank == 0:
+    # print(f"""\
+    # Calculating the Mandelbrot set with these arguments:
 
-    {chunk_size = }
-    {size = }
-    {xlim = }
-    {ylim = }
-    """)
+    # {chunk_size = }
+    # {size = }
+    # {xlim = }
+    # {ylim = }
+    # """)
 
 # Convert to numpy arrays, not really needed...
 size = np.asarray(size)
@@ -91,6 +91,8 @@ def split_problem(size,chunks):
 
 
 if rank == 0:
+    work_times = []
+    comm_times = []
     max_chunk_size = chunk_size
     chunks = int(np.ceil(size[0] / chunk_size))
 
@@ -126,43 +128,56 @@ if rank == 0:
             problem = list_of_chunks.pop()
             comm.Send(problem, dest = worker, tag = 0)
         else:
-            comm.Isend(np.empty(3,dtype = np.int64), dest = worker, tag = 1)
+            comm.Send(np.empty(3,dtype = np.int64), dest = worker, tag = 1)
             active_workers -= 1
+            times = np.empty(2, dtype = np.float64)
 
-  
+            comm.Recv(times, source = worker, tag = MPI.ANY_TAG, status = status)
+
+            work_times.append(times[0])
+            comm_times.append(times[1])
+
+
     t2 = time()
-    print("full image shape", full_image.shape)
+
     plt.rcParams.update({
         "font.size": 10,
     })
 
-    plt.imshow(full_image.T, extent=np.concatenate([xlim, ylim]))
-    plt.xlabel(r"x / Re(p_0)")
-    plt.ylabel(r"y / Im(p_0)")
+    print("Wall time",t2-t1)
+    print("Max Work time",np.max(work_times))
+    print("Min Work time", np.min(work_times))
 
-    # Just minimize white-space around the actual plot...
-    plt.margins(0, 0)
-    plt.savefig("Anton/Figure_1.png", bbox_inches="tight", pad_inches=0)
+    print("Maximum comm share", np.max(np.array(comm_times)/np.array(work_times)))
+    print("Maximum comm time", np.max(comm_times))
+    if save:
+        plt.imshow(full_image.T, extent=np.concatenate([xlim, ylim]))
+        plt.xlabel(r"x / Re(p_0)")
+        plt.ylabel(r"y / Im(p_0)")
+
+        # Just minimize white-space around the actual plot...
+        plt.margins(0, 0)
+        plt.savefig("Anton/Figure_1.png", bbox_inches="tight", pad_inches=0)
 else:
-    
+    work_time_1 = time()
     status = MPI.Status()
-
+    t1 = time()
+    comm_time = 0
     while True:
         incomming_problem = np.empty(3, dtype = np.int64)
         comm.Recv(incomming_problem,source=0, tag=MPI.ANY_TAG, status=status)
-        
-
+        t2 = time()
+        comm_time += t2-t1
         if status.tag == 1:
+            work_time_2 = time()
+            work_time = work_time_2 -work_time_1
+            comm.Send(np.array([work_time,comm_time], dtype = np.float64), dest = 0, tag = 1)
             break
-        print(incomming_problem)
+        # print(incomming_problem)
         chunk_number, low_bound, high_bound = incomming_problem
         low_bound, high_bound = int(low_bound), int(high_bound)
         
         local_image = np.zeros((int(high_bound-low_bound), size[1]), dtype = np.float64)
-
-        print(f"Rank {rank}: Local Image shape {local_image.shape}", flush=True)
-
-
         for x in range(low_bound, high_bound):
             cx = complex(xlim[0] + x * xconst, 0)
             local_x = x - low_bound
@@ -175,8 +190,5 @@ else:
                     if np.abs(z) > 2:
                         local_image[local_x, y] = i
                         break
-
-
-
-
+        t1 = time()
         comm.Send(local_image, dest = 0, tag = low_bound)

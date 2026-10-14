@@ -1,0 +1,72 @@
+Running with 8 cores
+Wall time 550.1491072177887
+Max Work time 550.1501035690308
+Min Work time 549.7933859825134
+Maximum comm share 0.00017596660631863145
+Maximum comm time 0.09679388999938965
+
+------------------------------------------------------------
+Sender: LSF System <lsfadmin@hpc.dtu.dk>
+Subject: Job 29610572[8]: <DynamicMandelBrot[6,8,10,12,14,16,18,20,24]> in cluster <dcc> Done
+
+Job <DynamicMandelBrot[6,8,10,12,14,16,18,20,24]> was submitted from host <n-62-30-3> by user <s214728> in cluster <dcc> at Tue Oct  6 11:47:15 2026
+Job was executed on host(s) <24*n-62-21-75>, in queue <hpcintro>, as user <s214728> in cluster <dcc> at Tue Oct  6 11:47:16 2026
+</zhome/e3/5/167986> was used as the home directory.
+</zhome/e3/5/167986/Desktop/MandelbrotLargeScaleModeling/Anton> was used as the working directory.
+Started at Tue Oct  6 11:47:16 2026
+Terminated at Tue Oct  6 11:56:29 2026
+Results reported at Tue Oct  6 11:56:29 2026
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+#BSUB -J DynamicMandelBrot[6,8,10,12,14,16,18,20,24]
+#BSUB -o outputs/10k_resolution/DynamicMandelBrot_%J_%I.out
+#BSUB -e outputs/10k_resolution/DynamicMandelBrot_%J_%I.err
+#BSUB -n 24
+#BSUB -R "span[hosts=1]"
+#BSUB -q hpcintro
+#BSUB -W 00:40
+#BSUB -M 8GB
+#BSUB -R "select[model == XeonE5_2650v4]"
+
+
+
+module load matplotlib/3.10.8-numpy-2.4.1-python-3.14.2
+module load mpi4py/4.1.1-python-3.14.2-openmpi-5.0.9
+
+
+
+
+
+echo "Running with $LSB_JOBINDEX cores"
+
+
+mpirun -np "$LSB_JOBINDEX" python3 MandelbrotSendRecv.py 10 10000x10000
+
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :                                   4408.69 sec.
+    Max Memory :                                 1400 MB
+    Average Memory :                             1274.17 MB
+    Total Requested Memory :                     196608.00 MB
+    Delta Memory :                               195208.00 MB
+    Max Swap :                                   -
+    Max Processes :                              12
+    Max Threads :                                31
+    Run time :                                   553 sec.
+    Turnaround time :                            554 sec.
+
+The output (if any) is above this job summary.
+
+
+
+PS:
+
+Read file <outputs/10k_resolution/DynamicMandelBrot_29610572_8.err> for stderr output of this job.
+

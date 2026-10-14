@@ -1,0 +1,105 @@
+========================================
+MPI ranks:   6
+Image size:  10000x10000
+LSF job:     29618658
+Array index: 1
+========================================
+Wall time 773.6121251583099
+Max Work time 773.6132125854492
+Min Work time 773.3409099578857
+Maximum comm share 0.0001537715015245067
+Maximum comm time 0.11895966529846191
+
+------------------------------------------------------------
+Sender: LSF System <lsfadmin@hpc.dtu.dk>
+Subject: Job 29618658[1]: <DynamicMandelBrot_small[1-44]> in cluster <dcc> Done
+
+Job <DynamicMandelBrot_small[1-44]> was submitted from host <hpclogin1> by user <s214728> in cluster <dcc> at Wed Oct  7 08:13:59 2026
+Job was executed on host(s) <24*n-62-21-75>, in queue <hpcintro>, as user <s214728> in cluster <dcc> at Wed Oct  7 08:14:00 2026
+</zhome/e3/5/167986> was used as the home directory.
+</zhome/e3/5/167986/Desktop/MandelbrotLargeScaleModeling/Anton> was used as the working directory.
+Started at Wed Oct  7 08:14:00 2026
+Terminated at Wed Oct  7 08:26:57 2026
+Results reported at Wed Oct  7 08:26:57 2026
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+#!/bin/bash
+
+#BSUB -J DynamicMandelBrot_small[1-44]
+#BSUB -o outputs/scale_compute/small_%J_%I.out
+#BSUB -e outputs/scale_compute/small_%J_%I.err
+
+# Reserve one complete 24-core node
+#BSUB -n 24
+#BSUB -R "span[hosts=1]"
+
+#BSUB -q hpcintro
+#BSUB -W 02:00
+#BSUB -M 8GB
+#BSUB -R "rusage[mem=8GB]"
+#BSUB -R "select[model == XeonE5_2650v4]"
+
+
+module load matplotlib/3.10.8-numpy-2.4.1-python-3.14.2
+module load mpi4py/4.1.1-python-3.14.2-openmpi-5.0.9
+
+
+cores=(6 12 18 24)
+
+sizes=(
+    10000
+    11000
+    12000
+    13000
+    14000
+    15000
+    16000
+    17000
+    18000
+    19000
+    20000
+)
+
+
+# Convert single LSF array index into
+# core-count index and problem-size index
+idx=$((LSB_JOBINDEX - 1))
+
+core_idx=$((idx / 11))
+size_idx=$((idx % 11))
+
+ncores=${cores[$core_idx]}
+size=${sizes[$size_idx]}
+
+
+echo "========================================"
+
+(... more ...)
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :                                   4648.14 sec.
+    Max Memory :                                 1236 MB
+    Average Memory :                             1030.12 MB
+    Total Requested Memory :                     196608.00 MB
+    Delta Memory :                               195372.00 MB
+    Max Swap :                                   -
+    Max Processes :                              10
+    Max Threads :                                25
+    Run time :                                   777 sec.
+    Turnaround time :                            778 sec.
+
+The output (if any) is above this job summary.
+
+
+
+PS:
+
+Read file <outputs/scale_compute/small_29618658_1.err> for stderr output of this job.
+

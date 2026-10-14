@@ -1,0 +1,106 @@
+========================================
+MPI ranks:   36
+Image size:  12000x12000
+LSF job:     29618659
+Array index: 14
+========================================
+Wall time 183.32207918167114
+Max Work time 183.388418674469
+Min Work time 182.91951537132263
+Maximum comm share 0.0005426254806301069
+Maximum comm time 0.09934163093566895
+
+------------------------------------------------------------
+Sender: LSF System <lsfadmin@hpc.dtu.dk>
+Subject: Job 29618659[14]: <DynamicMandelBrot_large[1-44]> in cluster <dcc> Done
+
+Job <DynamicMandelBrot_large[1-44]> was submitted from host <hpclogin1> by user <s214728> in cluster <dcc> at Wed Oct  7 08:15:18 2026
+Job was executed on host(s) <24*n-62-21-48>, in queue <hpcintro>, as user <s214728> in cluster <dcc> at Wed Oct  7 15:20:11 2026
+                            <24*n-62-21-47>
+</zhome/e3/5/167986> was used as the home directory.
+</zhome/e3/5/167986/Desktop/MandelbrotLargeScaleModeling/Anton> was used as the working directory.
+Started at Wed Oct  7 15:20:11 2026
+Terminated at Wed Oct  7 15:23:17 2026
+Results reported at Wed Oct  7 15:23:17 2026
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+#!/bin/bash
+
+#BSUB -J DynamicMandelBrot_large[1-44]
+#BSUB -o outputs/scale_compute/large_%J_%I.out
+#BSUB -e outputs/scale_compute/large_%J_%I.err
+
+# Reserve two complete 24-core nodes
+#BSUB -n 48
+#BSUB -R "span[ptile=24]"
+
+#BSUB -q hpcintro
+#BSUB -W 01:00
+#BSUB -M 6GB
+#BSUB -R "rusage[mem=6GB]"
+#BSUB -R "select[model == XeonE5_2650v4]"
+
+
+module load matplotlib/3.10.8-numpy-2.4.1-python-3.14.2
+module load mpi4py/4.1.1-python-3.14.2-openmpi-5.0.9
+
+
+cores=(30 36 42 48)
+
+sizes=(
+    10000
+    11000
+    12000
+    13000
+    14000
+    15000
+    16000
+    17000
+    18000
+    19000
+    20000
+)
+
+
+idx=$((LSB_JOBINDEX - 1))
+
+core_idx=$((idx / 11))
+size_idx=$((idx % 11))
+
+ncores=${cores[$core_idx]}
+size=${sizes[$size_idx]}
+
+
+echo "========================================"
+echo "MPI ranks:   $ncores"
+echo "Image size:  ${size}x${size}"
+
+(... more ...)
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :                                   6633.00 sec.
+    Max Memory :                                 7826 MB
+    Average Memory :                             7085.75 MB
+    Total Requested Memory :                     294912.00 MB
+    Delta Memory :                               287086.00 MB
+    Max Swap :                                   -
+    Max Processes :                              42
+    Max Threads :                                134
+    Run time :                                   186 sec.
+    Turnaround time :                            25679 sec.
+
+The output (if any) is above this job summary.
+
+
+
+PS:
+
+Read file <outputs/scale_compute/large_29618659_14.err> for stderr output of this job.
+
