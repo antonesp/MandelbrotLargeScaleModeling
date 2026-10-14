@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+import time
 
 _help = f"""\
 {sys.argv[0]} [chunk-size] [size widthXheight] [limits xmin:xmax ymin:ymax]
@@ -49,6 +50,8 @@ Calculating the Mandelbrot set with these arguments:
 {ylim = }
 """)
 
+t1 = time.time()
+
 # Convert to numpy arrays, not really needed...
 size = np.asarray(size)
 xlim = np.asarray(xlim)
@@ -71,6 +74,9 @@ for x in range(size[0]):
             if np.abs(z) > 2:
                 image[x, y] = i
                 break
+
+print(time.time()-t1)
+
 import matplotlib.pyplot as plt
 
 # Increase font-size
@@ -85,3 +91,4 @@ plt.ylabel(r"y / Im(p_0)")
 plt.margins(0, 0)
 plt.savefig("Figure_1.png", bbox_inches="tight", pad_inches=0)
 plt.show()
+
