@@ -4,8 +4,8 @@
 #BSUB -n 24
 #BSUB -R "span[hosts=1]"
 #BSUB -q hpcintro
-#BSUB -W 00:40
-#BSUB -M 8GB
+#BSUB -W 00:20
+#BSUB -M 2GB
 #BSUB -R "select[model == XeonE5_2650v4]"
 
 

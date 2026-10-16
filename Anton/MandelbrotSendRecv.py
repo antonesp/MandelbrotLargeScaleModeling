@@ -36,8 +36,8 @@ rank = comm.Get_rank()
 cores = comm.Get_size()
 
 save = 0
-chunk_size = 1
-size = 2000, 2000
+chunk_size = 10
+size = 10000, 10000
 xlim = -2.2, 0.75
 ylim = -1.3, 1.3
 
@@ -93,6 +93,7 @@ def split_problem(size,chunks):
 if rank == 0:
     work_times = []
     comm_times = []
+    ranks = []
     max_chunk_size = chunk_size
     chunks = int(np.ceil(size[0] / chunk_size))
 
@@ -133,7 +134,7 @@ if rank == 0:
             times = np.empty(2, dtype = np.float64)
 
             comm.Recv(times, source = worker, tag = MPI.ANY_TAG, status = status)
-
+            ranks.append(worker)
             work_times.append(times[0])
             comm_times.append(times[1])
 
@@ -145,11 +146,17 @@ if rank == 0:
     })
 
     print("Wall time",t2-t1)
+
+    for worker, work_time, comm_time in zip(ranks, work_times, comm_times):
+        print(f"Rank {worker}: work time {work_time}, comm time {comm_time}")
+    
+
     print("Max Work time",np.max(work_times))
     print("Min Work time", np.min(work_times))
-
-    print("Maximum comm share", np.max(np.array(comm_times)/np.array(work_times)))
     print("Maximum comm time", np.max(comm_times))
+    print("Maximum comm share", np.max(np.array(comm_times)/np.array(work_times)))
+    # print("Comm times:", np.array(comm_times))
+   
     if save:
         plt.imshow(full_image.T, extent=np.concatenate([xlim, ylim]))
         plt.xlabel(r"x / Re(p_0)")
