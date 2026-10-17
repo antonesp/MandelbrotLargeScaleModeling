@@ -75,8 +75,10 @@ comm_rank = comm.Get_rank()
 comm_size = comm.Get_size()
 
 # Define mandelbrot
-def mandelbrot(image, bounds):
+def mandelbrot(bounds, image):
     lw_bnd, up_bnd = bounds
+    image.fill(0)
+    # image = np.zeros(shape=((up_bnd - lw_bnd), size[1]), dtype=np.float64)
     for j, x in enumerate(range(lw_bnd, up_bnd)):
         cx = complex(xlim[0] + x * xconst, 0)
         for y in range(size[1]):
@@ -86,85 +88,59 @@ def mandelbrot(image, bounds):
             for i in range(100):
                 z = z*z + c
                 if np.abs(z) > 2:
-                    image[j * size[1] + y] = i
+                    image[j, y] = i
                     break
-    return image
+    # return image
 
 # Now send x-index to rank 0
 # Get the local new dimension
-if (comm_rank == (comm_size - 1)):
-    local_dim = size[0] // comm_size + size[0] % comm_size
-else:
-    local_dim = size[0] // comm_size    
+total_chunks = (size[0] + chunk_size - 1) // chunk_size
+no_chunks = (total_chunks - comm_rank + comm_size - 1) // comm_size
 
 reqs = []
-buffs = []
-
-# Calculate the number of chunks each process needs to calculate
-no_chunks = int(np.ceil((size[0] / comm_size) / chunk_size))
-base_dim = size[0] // comm_size
-remainder = size[0] % comm_size
 
 comm.Barrier()
 if comm_rank == 0:
-    t1 = MPI.Wtime()
+    t1 = time.time()
 
     for i in range(1, comm_size):
-        my_dim = base_dim + remainder if i == comm_size - 1 else base_dim
-        offset = i * base_dim        
-        
-        for j in range(no_chunks):
-            lw_bnd = offset + (j * chunk_size)
-            up_bnd = min(lw_bnd + chunk_size, offset + my_dim)
-
+        rank_chunk = (total_chunks - i + comm_size - 1) // comm_size
+        for j in range(rank_chunk):
+            lw_bnd = (j * comm_size + i) * chunk_size
+            up_bnd =  min(lw_bnd + chunk_size, size[0])
             req = comm.Irecv(image[lw_bnd:up_bnd, :], source=i, tag=j)
             reqs.append(req)
 
+    t2 = time.time()
     for idx in range(no_chunks):
-        lw_bnd = idx * chunk_size
-        up_bnd = min(lw_bnd + chunk_size, base_dim)
-        image[lw_bnd:up_bnd, :] = mandelbrot(np.zeros(shape=((up_bnd - lw_bnd) * size[1])), (lw_bnd, up_bnd)).reshape(-1, size[1])
-        
+        lw_bnd = (idx * comm_size + comm_rank) * chunk_size
+        up_bnd =  min(lw_bnd + chunk_size, size[0])
+        mandelbrot((lw_bnd, up_bnd), image[lw_bnd:up_bnd, :])
+
+
+    t3 = time.time()
+    print(f"Rank {comm_rank} spent {t3 - t2:.5f} s calculating")
 
     MPI.Request.Waitall(reqs)
-
-    t2 = MPI.Wtime()
-    print(f"Time spent running the program {t2 - t1:.5f} s")
+    t4 = time.time()
+    print(f"Time spent running the program {t4 - t1:.5f} s")
     for req in reqs:
         free(req)
-
 else:
-    my_dim = base_dim + remainder if comm_rank == comm_size - 1 else base_dim
-    offset = comm_rank * base_dim
-
-    local_bufferA = np.zeros(shape=(chunk_size * size[1]))
-    local_bufferB = np.zeros(shape=(chunk_size * size[1]))
-
-    reqA = None
-    reqB = None
-
+    # One contiguous buffer holding all chunks for this worker (same memory as BlockingRR2D!)
+    local_buffer = np.zeros(shape=(no_chunks * chunk_size, size[1]), dtype=np.float64)
+    worker_reqs = []
+    t1 = time.time()
     for idx in range(no_chunks):
-        lw_bnd = offset + (idx * chunk_size)
-        up_bnd = min(lw_bnd + chunk_size, offset + my_dim)
-        
-        if idx % 2 == 0:
-            count = min(len(local_bufferA), (up_bnd-lw_bnd)*size[1])
-            if reqA: 
-                reqA.Wait()
-            local_bufferA.fill(0)
-            RESULTS = mandelbrot(local_bufferA, (lw_bnd, up_bnd))[:count].reshape(-1, size[1])
-            reqA = comm.Isend(RESULTS, dest=0, tag=idx)
-        else:
-            count = min(len(local_bufferB), (up_bnd-lw_bnd)*size[1])
-            if reqB: 
-                reqB.Wait()
-            local_bufferB.fill(0)
-            RESULTS = mandelbrot(local_bufferB, (lw_bnd, up_bnd))[:count].reshape(-1, size[1])
-            reqB = comm.Isend(RESULTS, dest=0, tag=idx)
-    if reqA:
-        reqA.Wait()
-    if reqB:
-        reqB.Wait()
+        lw_bnd = (idx * comm_size + comm_rank) * chunk_size
+        up_bnd = min(lw_bnd + chunk_size, size[0])
+        rows = up_bnd - lw_bnd
+        buf_slice = local_buffer[idx * chunk_size : idx * chunk_size + rows, :]
+        mandelbrot((lw_bnd, up_bnd), buf_slice)
+        worker_reqs.append(comm.Isend(buf_slice, dest=0, tag=idx))
+    MPI.Request.Waitall(worker_reqs)
+    t2 = time.time()
+    print(f"Rank {comm_rank} spent {t2 - t1:.5f} s with sending")
 
 # Visualization
 import matplotlib.pyplot as plt
