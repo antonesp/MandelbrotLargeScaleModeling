@@ -33,13 +33,7 @@ for file in folder.glob("*.out"):
 
 df = pd.DataFrame(results).sort_values(["mpi_ranks", "image_size"])
 
-print(
-    "Wall time for rank 6, image size 10000:",
-    df.loc[
-        (df["mpi_ranks"] == 12) & (df["image_size"] == 10000),
-        "wall_time",
-    ].iloc[0],
-)
+# print(df[["mpi_ranks", "image_size", "wall_time"]].to_string(index=False))
 
 # Rank 0 only distributes work
 df["working_ranks"] = df["mpi_ranks"] - 1
@@ -50,7 +44,7 @@ df["relative_work_imbalance"] = (
 )
 
 df["pixels_per_second_per_worker"] = (
-    df["image_size"]**2
+    df["image_size"]**2 * 241.284
     / (df["wall_time"] * df["working_ranks"])
 )
 
@@ -60,6 +54,17 @@ df = df.sort_values(["working_ranks", "pixel_count"])
 df["time_increase_factor"] = (
     df["wall_time"]
     / df.groupby("working_ranks")["wall_time"].transform("first")
+)
+
+wall_times = df[df["image_size"].isin([10000, 20000])].pivot(
+    index="working_ranks",
+    columns="image_size",
+    values="wall_time",
+)
+mean_wall_time_increase = (wall_times[20000] / wall_times[10000]).mean()
+print(
+    "Mean wall-time increase factor at image width 20000 compared to 10000: "
+    f"{mean_wall_time_increase:.2f}"
 )
 
 # Parallelization efficiency relative to the 6-rank run:
@@ -172,14 +177,16 @@ average_efficiency = (
     .mean()
 )
 
-plt.plot(
+plt.scatter(
     average_efficiency.index - 1,
     average_efficiency,
-    marker="o",
 )
+plt.axhline(1, color="black", linestyle="--", label="Perfect parallelization")
 plt.xlabel("Working ranks")
 plt.ylabel("Average parallelization efficiency")
 plt.grid(alpha=0.3)
+plt.ylim(0.6, 1.2)
+plt.legend()
 plt.tight_layout()
 plt.savefig(
     figures_folder / "average_parallelization_efficiency.png",
@@ -269,7 +276,7 @@ heatmap(
 
 heatmap(
     "relative_work_imbalance",
-    "Relative work imbalance",
+    "Maximum work imbalance",
     "relative_work_imbalance.png",
 )
 
@@ -284,7 +291,7 @@ fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
 heatmap(
     "pixels_per_second_per_worker",
-    "Pixels / (walltime × worker)",
+    "FLOPS / worker",
     show_values=False,
     ax=axes[0],
 )
@@ -299,5 +306,6 @@ heatmap(
 fig.tight_layout()
 fig.savefig(figures_folder / "performance_heatmaps.png", dpi=300)
 plt.close(fig)
+
 
 

@@ -114,26 +114,26 @@ if rank == 0:
             comm.Send([np.array([-1, -1, -1], dtype=np.int64), MPI.INT64_T], dest = core, tag = 1)
             active_workers -= 1
 
-    while active_workers > 0:
+    while active_workers > 0: # Ending condition when no cores are still working
         incomming_chunk = np.empty((max_chunk_size,size[1]))
         comm.Recv(incomming_chunk, source = MPI.ANY_SOURCE, tag = MPI.ANY_TAG, status = status)
 
-        worker = status.Get_source()
+        worker = status.Get_source() # Determine who gets send the next task
         start_row = status.Get_tag()
 
-        count_floats = status.Get_count(MPI.DOUBLE)
+        count_floats = status.Get_count(MPI.DOUBLE) # This is only relevant of image size is not divisble by chunk size
         num_rows = count_floats // size[1]
         full_image[start_row:(start_row+num_rows),:] = incomming_chunk[:num_rows,:]
 
         if list_of_chunks:
             problem = list_of_chunks.pop()
-            comm.Send(problem, dest = worker, tag = 0)
-        else:
-            comm.Send(np.empty(3,dtype = np.int64), dest = worker, tag = 1)
+            comm.Send(problem, dest = worker, tag = 0) # Assaign more to the worker who just fineshed
+        else: # If the list is empty all the work is done
+            comm.Send(np.empty(3,dtype = np.int64), dest = worker, tag = 1) # Tag tells worker that all task are allocated
             active_workers -= 1
             times = np.empty(2, dtype = np.float64)
 
-            comm.Recv(times, source = worker, tag = MPI.ANY_TAG, status = status)
+            comm.Recv(times, source = worker, tag = MPI.ANY_TAG, status = status) # We still recive the time spent working and communicating.
             ranks.append(worker)
             work_times.append(times[0])
             comm_times.append(times[1])
@@ -166,9 +166,9 @@ if rank == 0:
         plt.margins(0, 0)
         plt.savefig("Anton/Figure_1.png", bbox_inches="tight", pad_inches=0)
 else:
-    work_time_1 = time()
+    work_time_1 = time() # The start time of the worker
     status = MPI.Status()
-    t1 = time()
+    t1 = time() # Start time, needed so we can count the first recive in comm time
     comm_time = 0
     while True:
         incomming_problem = np.empty(3, dtype = np.int64)

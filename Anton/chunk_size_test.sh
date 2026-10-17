@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#BSUB -J ChunkSize[1-4]
+#BSUB -J ChunkSize[1-10]
 #BSUB -o outputs/chunk_size/chunk_%J_%I.out
 #BSUB -e outputs/chunk_size/chunk_%J_%I.err
 
@@ -23,8 +23,14 @@ size=10000
 
 chunk_sizes=(
     1
-    10
-    100
+    2
+    4
+    8
+    16
+    32
+    64
+    128
+    256
     400
 )
 
