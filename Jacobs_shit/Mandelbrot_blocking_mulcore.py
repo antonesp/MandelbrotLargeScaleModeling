@@ -34,7 +34,7 @@ $ {sys.argv[0]} 10 100x500 0.1:0.3 0.2:0.3
 # First we define all the defaults, then we let the arguments overwrite
 # them.
 chunk_size = 10
-size = 1000, 1000
+size = 10000, 10000
 xlim = -2.2, 0.75
 ylim = -1.3, 1.3
 
@@ -58,8 +58,7 @@ if argv:
 # {ylim = }
 # """)
 
-if rank == 0:
-    t1 = time.time()
+t1 = time.time()
 
 # Convert to numpy arrays, not really needed...
 size = np.asarray(size)
@@ -110,6 +109,7 @@ else:
 
 
 if rank == 0:
+    print("Rank:", rank, "Time calc:", time.time()-t1)
     images = [image]
     for i in range(1,num_ranks):
         status = MPI.Status()
@@ -124,7 +124,7 @@ if rank == 0:
     
     full_image = np.concatenate(images,axis=0)
 
-    print(time.time()-t1)
+    print("Total time:", time.time()-t1)
 
     # # Increase font-size
     # plt.rcParams.update({
@@ -139,8 +139,10 @@ if rank == 0:
     # plt.savefig("Figure_1_blocking_mulcores.png", bbox_inches="tight", pad_inches=0)
     # plt.show()
 else:
+    print("Rank:", rank, "Time calc:", time.time()-t1)
     message = image
     comm.Send(message,dest=0,tag=rank)
+    print("Rank:", rank, "Time send:", time.time()-t1)
 
 
    
