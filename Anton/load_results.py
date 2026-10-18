@@ -185,7 +185,7 @@ plt.axhline(1, color="black", linestyle="--", label="Perfect parallelization")
 plt.xlabel("Working ranks")
 plt.ylabel("Average parallelization efficiency")
 plt.grid(alpha=0.3)
-plt.ylim(0.6, 1.2)
+plt.ylim(0.9, 1.1)
 plt.legend()
 plt.tight_layout()
 plt.savefig(
