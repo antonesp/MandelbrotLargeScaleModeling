@@ -1,0 +1,13 @@
+module load matplotlib/3.10.6-numpy-2.3.1-python-3.12.11
+module load pandas/2.3.0-python-3.12.11
+module load mpi4py/4.0.3-python-3.12.11-openmpi-5.0.8
+
+mpirun -np 2 python3 Mandelbrot_Blocking.py 10 10x10
+mpirun -np 2 python3 Mandelbrot_NonBlocking.py 10 10x10
+
+mpirun -np 3 python3 Mandelbrot_BlockingRR2D copy.py 10 100x100
+mpirun -np 3 python3 Mandelbrot_Blocking.py 10 100x100
+mpirun -np 3 python3 Mandelbrot_NonBlocking.py 10 100x100
+
+mpirun -np 8 python3 Mandelbrot_BlockingRR2D.py 10 700x700
+mpirun -np 8 python3 Mandelbrot_NonBlocking.py 10 700x700
