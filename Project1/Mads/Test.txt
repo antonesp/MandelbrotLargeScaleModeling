@@ -1,0 +1,5 @@
+TODO:
+    - cores (6, 12, 18, 24, 30, 36, 42, 48) vs image size (10000 - 20000)
+    - speed-up (6, 12, 18, 24, 30, 36, 42, 48) at 10000x10000
+    - load-imbalance (6, 12, 18, 24, 30, 36, 42, 48), calc time vs send time (possibly imbalance factor max/min)
+    - 
