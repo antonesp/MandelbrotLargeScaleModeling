@@ -3,6 +3,7 @@ import numpy as np
 from poisson_helper import force_term, stencil_update, true_sol
 from mpi4py import MPI
 from Anton.more_help_funcs import send_recive, split_dimension
+from time import time
 # My implimentation of a parallel poisson solver.
 
 
@@ -55,16 +56,16 @@ def run_Poisson_square(N_int, max_it = 1_000_000, max_err = 1e-6, report = False
     iz0, nz = split_dimension(N_int, Pz, rz)
 
     subproblem_dimensions = cart.gather((nx, ny, nz), root=0)
-    if rank == 0:
+    if rank == 0 and report:
         print(f"Number of cores: {cores}")
         print(f"Number of interior points: {N_int}")
         print(f"Subproblem dimensions: {subproblem_dimensions}")
 
 
     # We can then calculate the local grid
-    x_local = x[ix0:(ix0+nx)]
-    y_local = y[iy0:(iy0+ny)]
-    z_local = z[iz0:(iz0+nz)]
+    x_local = x_int[ix0:ix0 + nx]
+    y_local = y_int[iy0:iy0 + ny]
+    z_local = z_int[iz0:iz0 + nz]
 
     X, Y, Z = np.meshgrid(x_local, y_local, z_local, indexing = "ij")
 
@@ -132,19 +133,61 @@ def run_Poisson_square(N_int, max_it = 1_000_000, max_err = 1e-6, report = False
             print(f"{ERR=} at {it=}")
 
 
+    err_inf_local = np.max(
+    np.abs(phi_prev[1:-1, 1:-1, 1:-1] - u)
+    )
 
+    err_inf = cart.allreduce(
+        err_inf_local,
+        op=MPI.MAX
+    )
 
-    if rank == 0:
+    if rank == 0 and report:
         print(f"{ERR=} at {it=}")
-        # print(phi_prev)
-        print(f"True final error: {np.max(np.abs(phi_prev[1:-1, 1:-1, 1:-1] - u))}")
-        return np.max(np.abs(phi_prev[1:-1, 1:-1, 1:-1] - u))
-
+        print(phi_prev)
+        print(f"True final error: {err_inf}")
+    return err_inf
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--n-int", type=int, default=100,
-                        help="Number of interior grid points per dimension")
-    N_int = parser.parse_args().n_int
-    run_Poisson_square(N_int)
 
+    parser.add_argument(
+        "--n-int",
+        type=int,
+        default=100,
+        help="Number of interior grid points per dimension"
+    )
+
+    parser.add_argument(
+        "--maxiter",
+        type=int,
+        default=1000000,
+        help="Maximum number of iterations"
+    )
+
+    parser.add_argument(
+        "--tolerence",
+        type=float,
+        default=1e-14,
+        help="Error tolerance"
+    )
+
+    args = parser.parse_args()
+
+    N_int = args.n_int
+    maxiter = args.maxiter
+    tolerence = args.tolerence
+
+    t1 = time()
+
+    error = run_Poisson_square(
+        N_int,
+        max_it=maxiter,
+        max_err=tolerence
+    )
+
+    t2 = time()
+
+    if MPI.COMM_WORLD.Get_rank() == 0:
+        print(error)
+        print("Iterations per second", maxiter / (t2 - t1))
