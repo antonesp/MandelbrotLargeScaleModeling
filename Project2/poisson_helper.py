@@ -12,6 +12,15 @@ def stencil_update(phi, F, step_size):
     ) / 6
 
     return phi_new
+def stencil_update_better(phi, F, step_size):
+    phi_new = (
+        phi[:-2, 1:-1, 1:-1] + phi[2:, 1:-1, 1:-1] +
+        phi[1:-1, :-2, 1:-1] + phi[1:-1, 2:, 1:-1] +
+        phi[1:-1, 1:-1, :-2] + phi[1:-1, 1:-1, 2:] +
+        F[1:-1, 1:-1, 1:-1]
+    ) / 6
+
+    return phi_new
 
 def enforce_bounds(phi):
     phi[0, :, :] = 0.0

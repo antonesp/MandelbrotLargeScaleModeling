@@ -1,0 +1,2 @@
+cores,N_int,dx,true_error,steady_error,it,compute_time,overhead_time,comm_time,iter_per_s,grid_kb,mlup,memband_mbs,mflops
+1,1000,0.001998,9.995039e-01,1.969040e-05,25,743.96316,135.64480,0.00000,0.03360,8048096.1,33.60,2150.64,302.43
