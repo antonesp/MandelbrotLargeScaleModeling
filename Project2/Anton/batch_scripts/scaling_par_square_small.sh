@@ -1,7 +1,7 @@
 #!/bin/bash
 #BSUB -J parallel_scaling_square[1-6]
 #BSUB -q hpcintro
-#BSUB -W 00:25
+#BSUB -W 00:15
 #BSUB -n 24
 #BSUB -R "span[ptile=24]"
 #BSUB -R "rusage[mem=10GB]"
@@ -16,7 +16,7 @@ module load numpy
 
 # Match the sheet scaling experiment
 N_cores=(4 8 12 16 20 24)
-N_iters=(100 160 170 230 290 350)
+N_iters=(66 105 113 153 193 233)
 N_int=1000
 
 INDEX=$((LSB_JOBINDEX - 1))
@@ -38,6 +38,23 @@ OUTPUT=$(mpirun --report-bindings -np "$CURRENT_N_CORES" python3 -m Anton.par_im
     --maxiter "$CURRENT_N_ITERS" \
     --tolerence -1)
 
+# Query LSF for the peak memory observed so far for this array element.
+# LSB_UNIT_FOR_JOBS_DISPLAY=M requests memory values in MB.
+JOB_SPEC="${LSB_JOBID}[${LSB_JOBINDEX}]"
+MAX_MEM=$(
+    LSB_UNIT_FOR_JOBS_DISPLAY=M \
+    bjobs -noheader -o max_mem "$JOB_SPEC" 2>/dev/null \
+    | grep -oE '[0-9]+([.][0-9]+)?' \
+    | head -1
+)
+
+# Keep the CSV numeric even if LSF fails to return a value.
+if [ -z "$MAX_MEM" ]; then
+    MAX_MEM="nan"
+fi
+
+echo "Max memory observed by LSF: ${MAX_MEM} MB"
+
 # Parse timing
 TIME=$(echo "$OUTPUT" | grep -m 1 "Compute time:" | awk '{print $3}')
 GRIDs=$(echo "$OUTPUT" | grep -m 1 "Compute time:" | awk '{print $5}' | tr -d '(,')
@@ -57,7 +74,8 @@ MFLOPS=$(echo "$OUTPUT" | grep -m 1 "Compute rate:" | awk '{print $3}')
 
 # Columns:
 # cores,N_int,dx,true_error,steady_error,it,compute_time,overhead_time,
-# comm_time,iter_per_s,grid_kb,mlup,memband_mbs,mflops
-echo "$CURRENT_N_CORES,$N_int,$DX,$ERROR,$STEADY_ERROR,$IT,$TIME,$OVERHEAD,$COMM_TIME,$GRIDs,$GRID_KB,$MLUP,$MEMBAND,$MFLOPS" > "$OUTFILE"
+# comm_time,iter_per_s,grid_kb,mlup,memband_mbs,mflops,max_mem_mb
+echo "$CURRENT_N_CORES,$N_int,$DX,$ERROR,$STEADY_ERROR,$IT,$TIME,$OVERHEAD,$COMM_TIME,$GRIDs,$GRID_KB,$MLUP,$MEMBAND,$MFLOPS,$MAX_MEM" > "$OUTFILE"
 
 echo "Saved results to $OUTFILE"
+
