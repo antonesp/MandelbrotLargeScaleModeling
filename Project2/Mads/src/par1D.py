@@ -100,7 +100,10 @@ internal_interface_area = global_msg_size[0] // 2
 local_error = np.array([np.inf], dtype=np.float64)
 global_error = np.array([np.inf], dtype=np.float64)
 it = 0
+
+# Define buffers
 phi_prev = phi.copy()
+diff = np.empty_like(phi)
 
 band_time = 0
 comm_time = 0
@@ -129,7 +132,9 @@ while (it < max_it) and (global_error[0] > max_err):
 
     t1_band = time.time()
     phi[1:-1, 1:-1, 1:-1] = stencil_update(phi_prev, F, DX)
-    local_error[0] = np.max(np.abs(phi - phi_prev))
+    np.subtract(phi, phi_prev, out=diff)
+    np.abs(diff, out=diff)
+    local_error[0] = np.max(diff)
     t2_band = time.time()
     band_time += t2_band - t1_band
 
@@ -141,11 +146,13 @@ while (it < max_it) and (global_error[0] > max_err):
     phi_prev, phi = phi, phi_prev
 t3 = time.time()
 
-del F
+del F, phi
 
 # Final error tracking
 global_true_error = np.array([np.inf], dtype=np.float64)
-local_true_error = np.max(np.abs(phi_prev - true_sol(X, Y, Z)))
+np.subtract(phi_prev, true_sol(X, Y, Z), out=diff)
+np.abs(diff, out=diff)
+local_true_error = np.max(diff)
     
 t4_comm = time.time()
 comm.Allreduce(sendbuf=local_true_error, recvbuf=global_true_error, op=MPI.MAX)
