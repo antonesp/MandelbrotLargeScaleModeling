@@ -1,5 +1,5 @@
 #!/bin/bash
-#BSUB -J parallel_scaling_square[1-6]
+#BSUB -J parallel_scaling_square[1-5]
 #BSUB -q hpcintro
 #BSUB -W 00:15
 #BSUB -n 24
@@ -15,8 +15,8 @@ module load mpi4py/4.1.1-python-3.14.2-openmpi-5.0.9
 module load numpy
 
 # Match the sheet scaling experiment
-N_cores=(4 8 12 16 20 24)
-N_iters=(66 105 113 153 193 233)
+N_cores=(8 12 16 20 24)
+N_iters=(160 170 230 290 350)
 N_int=1000
 
 INDEX=$((LSB_JOBINDEX - 1))
@@ -71,11 +71,12 @@ GRID_KB=$(echo "$OUTPUT" | grep -m 1 "Performance (Grid:" | awk '{print $3}' | t
 MLUP=$(echo "$OUTPUT" | grep -m 1 "Throughput:" | awk '{print $2}')
 MEMBAND=$(echo "$OUTPUT" | grep -m 1 "Memory bandwidth:" | awk '{print $3}')
 MFLOPS=$(echo "$OUTPUT" | grep -m 1 "Compute rate:" | awk '{print $3}')
+COMM_POINTS=$(echo "$OUTPUT" | grep -m 1 "Communication points/iter:" | awk '{print $3}')
 
 # Columns:
 # cores,N_int,dx,true_error,steady_error,it,compute_time,overhead_time,
-# comm_time,iter_per_s,grid_kb,mlup,memband_mbs,mflops,max_mem_mb
-echo "$CURRENT_N_CORES,$N_int,$DX,$ERROR,$STEADY_ERROR,$IT,$TIME,$OVERHEAD,$COMM_TIME,$GRIDs,$GRID_KB,$MLUP,$MEMBAND,$MFLOPS,$MAX_MEM" > "$OUTFILE"
+# comm_time,iter_per_s,grid_kb,mlup,memband_mbs,mflops,max_mem_mb,comm_points_per_iter
+echo "$CURRENT_N_CORES,$N_int,$DX,$ERROR,$STEADY_ERROR,$IT,$TIME,$OVERHEAD,$COMM_TIME,$GRIDs,$GRID_KB,$MLUP,$MEMBAND,$MFLOPS,$MAX_MEM,$COMM_POINTS" > "$OUTFILE"
 
 echo "Saved results to $OUTFILE"
 

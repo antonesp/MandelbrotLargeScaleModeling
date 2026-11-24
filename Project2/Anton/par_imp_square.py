@@ -69,6 +69,26 @@ def run_Poisson_square(N_int, max_it=1_000_000, max_err=1e-6, report=False):
 
     neighbors = [xm, xp, ym, yp, zm, zp]
 
+    # Count the number of grid-point values sent in one halo exchange.
+    # Each internal interface is counted once from each neighboring rank,
+    # matching the actual bidirectional communication performed per iteration.
+    local_comm_points = 0
+    if xm != MPI.PROC_NULL:
+        local_comm_points += ny * nz
+    if xp != MPI.PROC_NULL:
+        local_comm_points += ny * nz
+    if ym != MPI.PROC_NULL:
+        local_comm_points += nx * nz
+    if yp != MPI.PROC_NULL:
+        local_comm_points += nx * nz
+    if zm != MPI.PROC_NULL:
+        local_comm_points += nx * ny
+    if zp != MPI.PROC_NULL:
+        local_comm_points += nx * ny
+
+    comm_points_per_iter = cart.allreduce(local_comm_points, op=MPI.SUM)
+    internal_interface_area = comm_points_per_iter // 2
+
     send_idx = [
         (1, slice(1, -1), slice(1, -1)),
         (-2, slice(1, -1), slice(1, -1)),
@@ -100,11 +120,10 @@ def run_Poisson_square(N_int, max_it=1_000_000, max_err=1e-6, report=False):
     while (ERR > max_err) and (it < max_it):
         t1_band = time()
         phi[1:-1, 1:-1, 1:-1] = stencil_update(phi_prev, F, dx)
-
-
-        err_local = np.max(np.abs(phi - phi_prev))
         t2_band = time()
         band_time += t2_band - t1_band
+
+        err_local = np.max(np.abs(phi - phi_prev))
 
         it += 1
         phi_prev, phi = phi, phi_prev
@@ -125,8 +144,8 @@ def run_Poisson_square(N_int, max_it=1_000_000, max_err=1e-6, report=False):
 
     if rank == 0 and report:
         time_spent = t3 - t2
-        Mlup = N_int**3 * it / (band_time * 1e6)
-        MBs = Mlup * (192 + 48)
+        Mlup = N_int**3 * it / (time_spent * 1e6)
+        MBs = Mlup * 64
         MFlops = N_int**3 * it * 9 / (time_spent * 1e6)
         overhead = t2 - t1
         compute_time = t3 - t2
@@ -143,6 +162,8 @@ def run_Poisson_square(N_int, max_it=1_000_000, max_err=1e-6, report=False):
             f"  {'Process grid:':<24} {str(tuple(dims)):>10}\n"
             f"  {'Interior points:':<24} {N_int:>10d}^3\n"
             f"  {'Subproblem dimensions:':<24} {str(subproblem_dimensions)}\n"
+            f"  {'Internal interface area:':<24} {internal_interface_area:>10d} points\n"
+            f"  {'Communication points/iter:':<24} {comm_points_per_iter:>10d} values\n"
             f"\n"
             f"Timing\n"
             f"  {'Compute time:':<24} {compute_time:>10.5f} s  ({iter_per_sec:,.2f} it/s)\n"
