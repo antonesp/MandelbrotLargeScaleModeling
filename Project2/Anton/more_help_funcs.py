@@ -54,19 +54,21 @@ def send_recive(phi_prev, neighbors, send_idx, recv_idx, cart):
     return phi_prev
 
 
-def optimal_dims(cores, shape):
+def optimal_decomposition(cores, shape):
     Nx, Ny, Nz = shape
 
     best_dims = None
     best_area = np.inf
 
     for Px in range(1, cores + 1):
+
         if cores % Px != 0:
             continue
 
         remaining = cores // Px
 
         for Py in range(1, remaining + 1):
+
             if remaining % Py != 0:
                 continue
 
@@ -82,4 +84,4 @@ def optimal_dims(cores, shape):
                 best_area = area
                 best_dims = (Px, Py, Pz)
 
-    return best_dims
+    return best_dims, best_area
