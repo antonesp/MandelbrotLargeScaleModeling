@@ -2,7 +2,7 @@ import sys
 import time
 import numpy as np
 from mpi4py import MPI
-from poisson_helper import force_term, stencil_update, true_sol
+from poisson_helper import force_term, stencil_update_better, true_sol
 
 t1 = time.time()
 comm = MPI.COMM_WORLD.Clone()
@@ -131,7 +131,8 @@ while (it < max_it) and (global_error[0] > max_err):
 
 
     t1_band = time.time()
-    phi[1:-1, 1:-1, 1:-1] = stencil_update(phi_prev, F, DX)
+    # phi[1:-1, 1:-1, 1:-1] = 
+    stencil_update_better(phi_prev, phi[1:-1, 1:-1, 1:-1], F, DX)
     np.subtract(phi, phi_prev, out=diff)
     np.abs(diff, out=diff)
     local_error[0] = np.max(diff)
