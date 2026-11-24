@@ -2,7 +2,7 @@ import sys
 import time
 import numpy as np
 from mpi4py import MPI
-from poisson_helper import force_term, stencil_update, true_sol
+from poisson_helper import force_term, stencil_update, true_sol, stencil_update_better
 
 # Since it loops through axis backward to step any row, we have to advance the z- and y-axis
 def send_col(col_idx):
@@ -139,24 +139,17 @@ while (it < max_it) and (global_error[0] > max_err):
     comm_time += t2_comm - t1_comm
 
     t1_band = time.time()
-    phi[1:-1, 1:-1, 1:-1] = stencil_update(phi_prev, F, DX)
+    stencil_update_better(phi_prev, phi[1:-1, 1:-1, 1:-1], F, DX)
+    local_error[0] = np.max(np.abs(phi - phi_prev))
     t2_band = time.time()
     band_time += t2_band - t1_band
     
-    local_error[0] = np.max(np.abs(phi - phi_prev))
     t3_comm = time.time()
     comm.Allreduce(sendbuf=local_error, recvbuf=global_error, op=MPI.MAX)
     comm_time += time.time() - t3_comm
     it += 1
     phi_prev, phi = phi, phi_prev
 t3 = time.time()
-
-# Measuring Mlup/s
-if rank == 0: 
-    time_spent = t3 - t2
-    Mlup = N_INT**3 * it / (time_spent * 1e6)
-    MBs = Mlup * 64
-    MFlops = N_INT**3 * it * 9 / (time_spent * 1e6)
 
 # Final error tracking
 global_true_error = np.array([np.inf], dtype=np.float64)
@@ -167,6 +160,11 @@ comm.Allreduce(sendbuf=local_true_error, recvbuf=global_true_error, op=MPI.MAX)
 comm_time += time.time() - t4_comm
 
 if rank == 0:
+    time_spent = t3 - t2
+    Mlup = N_INT**3 * it / (band_time * 1e6)
+    MBs = Mlup * 240
+    MFlops = N_INT**3 * it * 9 / (time_spent * 1e6)
+
     overhead = t2 - t1
     compute_time = t3 - t2
     total_time = t3 - t1
