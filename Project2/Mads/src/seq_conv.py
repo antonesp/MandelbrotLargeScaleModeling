@@ -41,5 +41,5 @@ for n_int in N_int:
 dxs = np.array(dxs)
 errors = np.array(errors)
 
-np.savetxt('Mads/Results/Convergence/seq_conv.csv', np.column_stack((N_int, dxs, errors)), 
+np.savetxt('Mads/Results/Convergence/seq.csv', np.column_stack((N_int, dxs, errors)), 
            delimiter=',', header='N_int,dx,error', comments='')

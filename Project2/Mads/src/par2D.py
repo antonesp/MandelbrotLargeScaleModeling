@@ -118,6 +118,15 @@ halos = [
     if nbr != MPI.PROC_NULL
 ]
 
+# Message sizes
+msg_size = np.array([0], dtype=np.int64)
+for (nbr, sub, _, _) in halo_specs:
+    if nbr != MPI.PROC_NULL:
+        msg_size += np.prod(sub)
+global_msg_size = np.zeros(shape=(1,), dtype=np.int64)
+comm.Allreduce(sendbuf=msg_size, recvbuf=global_msg_size, op=MPI.SUM)
+internal_interface_area = global_msg_size[0] // 2
+
 # Define initial errors and loop
 local_error = np.array([np.inf], dtype=np.float64)
 global_error = np.array([np.inf], dtype=np.float64)
@@ -159,6 +168,7 @@ t4_comm = time.time()
 comm.Allreduce(sendbuf=local_true_error, recvbuf=global_true_error, op=MPI.MAX)
 comm_time += time.time() - t4_comm
 
+t5 = time.time()
 if rank == 0:
     time_spent = t3 - t2
     Mlup = N_INT**3 * it / (band_time * 1e6)
@@ -167,7 +177,8 @@ if rank == 0:
 
     overhead = t2 - t1
     compute_time = t3 - t2
-    total_time = t3 - t1
+    total_time = t5 - t1
+
     overhead_pct = 100 * overhead / total_time
     comm_pct = 100 * comm_time / compute_time
     iter_per_sec = it / compute_time
@@ -175,9 +186,13 @@ if rank == 0:
 
     print(
         f"\n{' Simulation Summary ':=^56}\n"
+        f"Problem\n"
+        f"  {'Internal interface area:':<24} {internal_interface_area:>10d} points\n"
+        f"  {'Communication points/iter:':<24} {global_msg_size[0]:>8d} values\n"
         f"Timing\n"
-        f"  {'Compute time:':<24} {compute_time:>10.5f} s  ({iter_per_sec:,.2f} it/s)\n"
+        f"  {'Total time:':<24} {total_time:>10.5f} s \n"
         f"  {'Overhead time:':<24} {overhead:>10.5f} s  ({overhead_pct:.2f}% of total)\n"
+        f"  {'Compute time:':<24} {compute_time:>10.5f} s  ({iter_per_sec:,.2f} it/s)\n"
         f"  {'Communication time:':<24} {comm_time:>10.5f} s  ({comm_pct:.2f}% of compute time)\n"
         f"\n"
         f"Convergence (it = {it:,})\n"
@@ -190,7 +205,6 @@ if rank == 0:
         f"  {'Compute rate:':<24} {MFlops:>10.2f} MFLOP/s\n"
         f"{'=' * 56}\n"
     )
-
 # Clean-up for all the messages
 for _, send_t, recv_t in halos:
     send_t.Free()

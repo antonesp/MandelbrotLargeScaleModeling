@@ -4,9 +4,9 @@ import os
 
 # Define the folder containing your CSV files
 directory = "Mads/Results/Convergence" 
-par_sausage_file = os.path.join(directory, "par_sausage_conv.csv")
-par_sheet_file = os.path.join(directory, "par_sheet_conv.csv")
-seq_file = os.path.join(directory, "seq_conv.csv")
+par_sausage_file = os.path.join(directory, "par1D.csv")
+par_sheet_file = os.path.join(directory, "par2D.csv")
+seq_file = os.path.join(directory, "seq.csv")
 
 # Load the data (skipping the 'N_int,dx,error' header row)
 par_sausage_data = np.genfromtxt(par_sausage_file, delimiter=',', skip_header=1)

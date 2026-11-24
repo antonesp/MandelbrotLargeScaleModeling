@@ -1,4 +1,4 @@
-from numpy import pi, sin
+from numpy import pi, sin, add, divide
 
 def force_term(x, y, z):
     return 3 * pi**2 * sin(pi * x) * sin(pi * y) * sin(pi * z)
@@ -12,15 +12,15 @@ def stencil_update(phi, F, step_size):
     ) / 6
 
     return phi_new
-def stencil_update_better(phi, F, step_size):
-    phi_new = (
-        phi[:-2, 1:-1, 1:-1] + phi[2:, 1:-1, 1:-1] +
-        phi[1:-1, :-2, 1:-1] + phi[1:-1, 2:, 1:-1] +
-        phi[1:-1, 1:-1, :-2] + phi[1:-1, 1:-1, 2:] +
-        F[1:-1, 1:-1, 1:-1]
-    ) / 6
+def stencil_update_better(phi, phi_new, F, step_size):
+    add(phi[:-2, 1:-1, 1:-1], phi[2:, 1:-1, 1:-1], out=phi_new)
+    add(phi_new, phi[1:-1, 2:, 1:-1], out=phi_new)
+    add(phi_new, phi[1:-1, :-2, 1:-1], out=phi_new)
+    add(phi_new, phi[1:-1, 1:-1, 2:], out=phi_new)
+    add(phi_new, phi[1:-1, 1:-1, :-2], out=phi_new)
+    add(phi_new, step_size**2 * F[1:-1, 1:-1, 1:-1], out=phi_new)
+    divide(phi_new, 6, out=phi_new)
 
-    return phi_new
 
 def enforce_bounds(phi):
     phi[0, :, :] = 0.0

@@ -2,8 +2,9 @@ import csv
 import re
 from pathlib import Path
 
-RESULTS_DIR = Path("Mads/Results")
-OUTPUT_FILE = RESULTS_DIR / "par_scale_sausage.csv"
+RESULTS_DIR = Path("Mads/Results/scaling")
+OUTPUT_FILE = RESULTS_DIR / "par1D.csv"
+# OUTPUT_FILE = RESULTS_DIR / "par_scale_sausage.csv"
 # OUTPUT_FILE = RESULTS_DIR / "par_scale_sheet.csv"
 
 HEADER = [
@@ -16,11 +17,14 @@ HEADER = [
     "compute_time",
     "overhead_time",
     "comm_time",
+    "total_time",
     "iter_per_s",
     "grid_kb",
     "mlup",
     "memband_mbs",
     "mflops",
+    "max_mem_mb",
+    "comm_pts"
 ]
 
 
@@ -28,8 +32,8 @@ def combine_results():
     # Match only per-core files (e.g., par_scale_4.csv) and ignore the combined file
     source_files = sorted(
         (
-            f for f in RESULTS_DIR.glob("par_scale_*.csv")
-            if re.fullmatch(r"par_scale_\d+\.csv", f.name)
+            f for f in RESULTS_DIR.glob("par1D_*.csv")
+            if re.fullmatch(r"par1D_\d+\.csv", f.name)
             # f for f in RESULTS_DIR.glob("par_scale_sheet_*.csv")
             # if re.fullmatch(r"par_scale_sheet_\d+\.csv", f.name)
         ),
